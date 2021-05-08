@@ -4,11 +4,27 @@
 using namespace sf;
 
 
+struct object {
+	int type;
+	Vector3f pos;
+	Vector3f col;
+	float refl;
+	bool use_tex;
+	int tex_index;
+	Vector3f norm; // for plane
+	float height; // for plane
+};
+
+
 int main() {
 	Shader shader;
 
-	int width = 720;
-	int height = 480;
+	object objects[10] = {
+		
+	};
+
+	int width = 1024;
+	int height = 600;
 
 	RenderWindow window(VideoMode(width, height), "Ray tracing", Style::Titlebar | Style::Close);
 	window.setFramerateLimit(60);
@@ -30,7 +46,18 @@ int main() {
 
 	Vector3f origin(0, 1, 8);
 	Vector3f vel;
-	Vector2f rotate(20/360*3.14, 0);
+	Vector2f rotate(0, 0);
+
+
+	Texture earth;
+	earth.loadFromFile("textures/earth_2.jpg");
+	earth.setRepeated(true);
+	shader.setUniform("tex1", earth);
+
+	Texture sky;
+	sky.loadFromFile("textures/skybox.png");
+	shader.setUniform("sky", sky);
+
 
 	shader.setUniform("resolution", Vector2f(width, height));
 
@@ -58,23 +85,23 @@ int main() {
 
 				sf::Mouse::setPosition(sf::Vector2i(width / 2, height / 2), window);
 
-				if (mx != 0.f || my != 0.f) rate = 0.9f;
+				if (mx != 0.f || my != 0.f) rate = 1.f;
 			}
 			else if (event.type == sf::Event::KeyPressed) {
 				if (event.key.code == sf::Keyboard::Escape) {
 					window.setMouseCursorVisible(true);
 					window.close();
 				}
-				else if (event.key.code == Keyboard::W){ rate = 0.9f; vel.z = 0.1;}
-				else if (event.key.code == Keyboard::A){ rate = 0.9f; vel.x = -0.1;}
-				else if (event.key.code == Keyboard::S){ rate = 0.9f; vel.z = -0.1;}
-				else if (event.key.code == Keyboard::D){ rate = 0.9f; vel.x = 0.1;}
+				else if (event.key.code == Keyboard::W){rate = 1.f; vel.z = 0.1;}
+				else if (event.key.code == Keyboard::A){rate = 1.f; vel.x = -0.1;}
+				else if (event.key.code == Keyboard::S){rate = 1.f; vel.z = -0.1;}
+				else if (event.key.code == Keyboard::D){rate = 1.f; vel.x = 0.1;}
 			}
 			else if (event.type == Event::KeyReleased) {
-				if (event.key.code == Keyboard::W) vel.z = 0;
-				else if (event.key.code == Keyboard::A) vel.x = 0;
-				else if (event.key.code == Keyboard::S) vel.z = 0;
-				else if (event.key.code == Keyboard::D) vel.x = 0;
+				if (event.key.code == Keyboard::W){rate = 1.f; vel.z = 0;}
+				else if (event.key.code == Keyboard::A){rate = 1.f; vel.x = 0;}
+				else if (event.key.code == Keyboard::S){rate = 1.f; vel.z = 0;}
+				else if (event.key.code == Keyboard::D){rate = 1.f; vel.x = 0;}
 			}
 		}
 

@@ -17,6 +17,9 @@ uniform vec2 rotate;
 uniform sampler2D backbuffer;
 uniform float rate;
 
+uniform sampler2D tex1;
+uniform sampler2D sky;
+
 uvec4 R_STATE;
 
 uint TausStep(uint z, int S1, int S2, int S3, uint M)
@@ -57,7 +60,6 @@ vec3 randomOnSphere() {
 	float y = r * sin(phi) * sin(theta);
 	float z = r * cos(phi);
 	return vec3(x, y, z);
-	//return normalize(vec3(random()*2.-1., random()*2.-1., random()*2.-1.));
 }
 
 
@@ -102,6 +104,14 @@ vec3 getSky(vec3 rd) {
 }
 
 
+vec3 getSphereTexture(vec3 rd, sampler2D tex) {
+	vec2 uv = vec2(atan(rd.x, rd.z), asin(rd.y) * 2.);
+	uv /= 3.14159265;
+	uv = uv * .5 + .5;
+	return texture2D(tex, uv).rgb;
+}
+
+
 vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	vec2 minIt = vec2(MAX_DIST);
 	vec4 col;
@@ -115,7 +125,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = bN;
-		col = vec4(1,1,1,-2);
+		col = vec4(.1,.1,.1,-2);
 	}
 
 	vec3 spPos = vec3(0,0,10);
@@ -124,7 +134,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = normalize(ro + rd * it.x - spPos);
-		col = vec4(1,0,0,0);
+		col = vec4(getSphereTexture(-n, tex1),0);
 	}
 
 	spPos = vec3(2,0,13);
@@ -133,7 +143,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = normalize(ro + rd * it.x - spPos);
-		col = vec4(.1,1,.1,0.6);
+		col = vec4(.1,1,.1,0.3);
 	}
 
 	bPos = vec3(2,-0.5,7);
@@ -142,7 +152,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = bN;
-		col = vec4(.1, .1, 1, 0);
+		col = vec4(0.1, 0.1, 1, 0);
 	}
 
 	vec4 plNorm = vec4(0, 1, 0, 1);
