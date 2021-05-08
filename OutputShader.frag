@@ -6,12 +6,16 @@ uniform vec2 resolution;
 const vec3 light = normalize(vec3(0, 0.1, 1));
 
 const float MAX_DIST = 200.;
-const int MAX_REFL = 6;
-
-float seed;
+const int MAX_REFL = 4;
 
 uniform vec2 u_seed1;
 uniform vec2 u_seed2;
+
+uniform vec3 origin;
+uniform vec2 rotate;
+
+uniform sampler2D backbuffer;
+uniform float rate;
 
 uvec4 R_STATE;
 
@@ -41,12 +45,6 @@ float random()
 	R_STATE.z = TausStep(R_STATE.z, 3, 11, 17, uint(429496728));
 	R_STATE.w = LCGStep(R_STATE.w, uint(1664525), uint(101390422));
 	return 2.3283064365387e-10 * float((R_STATE.x ^ R_STATE.y ^ R_STATE.z ^ R_STATE.w));
-}
-
-float rand(){
-	float r = fract(sin(dot(vec2(seed),vec2(12.9898,78.233))) * 43758.5453);
-	seed = r;
-	return r;
 }
 
 vec3 randomOnSphere() {
@@ -135,7 +133,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = normalize(ro + rd * it.x - spPos);
-		col = vec4(.1,1,.1,0);
+		col = vec4(.1,1,.1,0.6);
 	}
 
 	bPos = vec3(2,-0.5,7);
@@ -164,7 +162,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	}
 
 
-	plNorm = vec4(0, 0, -1, 13);
+	plNorm = vec4(0, 0, -1, 14);
 	it = vec2(plaInter(ro, rd, plNorm));
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
@@ -247,13 +245,14 @@ void main(void) {
 	R_STATE.z = uint(u_seed2.x + uvRes.y);
 	R_STATE.w = uint(u_seed2.y + uvRes.y);
 
-	vec3 ro = vec3(-1,0,2);
+	vec3 ro = origin;
 	vec3 rd = normalize(vec3(uv, 1));
 
-	rd.xz *= rot(-20./180.*3.14159265);
+	rd.yz *= rot(rotate.x);
+	rd.xz *= rot(rotate.y);
 
 	vec3 col = vec3(0);
-	int samples = 256;
+	int samples = 32;
 	for(int i = 0; i < samples; i++) {
 		col += render(ro, rd);
 	}
@@ -261,7 +260,9 @@ void main(void) {
 
 	float white = 10.;
 	col *= white * 16.;
-	col = (col *(1. + col / white / white)) / (1. + col);
+	col = (col * (1. + col / white / white)) / (1. + col);
 
-	gl_FragColor = vec4(col, 1.0);
+	vec2 tuv = gl_FragCoord.xy / resolution;
+
+	gl_FragColor = vec4(mix(texture2D(backbuffer, tuv).rgb, col, rate), 1.0);
 }
