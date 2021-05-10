@@ -18,7 +18,13 @@ uniform sampler2D backbuffer;
 uniform float rate;
 
 uniform sampler2D tex1;
-uniform sampler2D sky;
+uniform sampler2D normal;
+uniform sampler2D side_a;
+uniform sampler2D side_b;
+uniform sampler2D side_c;
+uniform sampler2D side_d;
+uniform sampler2D side_e;
+uniform sampler2D side_f;
 
 uvec4 R_STATE;
 
@@ -111,6 +117,93 @@ vec3 getSphereTexture(vec3 rd, sampler2D tex) {
 	return texture2D(tex, uv).rgb;
 }
 
+//https://en.wikipedia.org/wiki/Cube_mapping#:~:text=In%20computer%20graphics%2C%20cube%20mapping,regions%20of%20a%20single%20texture.
+vec2 convert_xyz_to_cube_uv(vec3 dir, inout int index) {
+	float x = dir.x;
+	float y = dir.y;
+	float z = dir.z;
+
+	float absX = abs(x);
+	float absY = abs(y);
+	float absZ = abs(z);
+
+	bool isXPositive = x > 0. ? true : false;
+	bool isYPositive = y > 0. ? true : false;
+	bool isZPositive = z > 0. ? true : false;
+
+	float maxAxis, uc, vc;
+
+	if (isXPositive && absX >= absY && absX >= absZ) {
+		maxAxis = absX;
+		uc = -z;
+		vc = y;
+		index = 0;
+	}
+	
+	if (!isXPositive && absX >= absY && absX >= absZ) {
+		maxAxis = absX;
+		uc = z;
+		vc = y;
+		index = 1;
+	}
+	
+	if (isYPositive && absY >= absX && absY >= absZ) {
+		maxAxis = absY;
+		uc = x;
+		vc = -z;
+		index = 2;
+	}
+	
+	if (!isYPositive && absY >= absX && absY >= absZ) {
+		maxAxis = absY;
+		uc = x;
+		vc = z;
+		index = 3;
+	}
+	
+	if (isZPositive && absZ >= absX && absZ >= absY) {
+		maxAxis = absZ;
+		uc = x;
+		vc = y;
+		index = 4;
+	}
+	
+	if (!isZPositive && absZ >= absX && absZ >= absY) {
+		maxAxis = absZ;
+		uc = -x;
+		vc = y;
+		index = 5;
+	}
+
+	return vec2(0.5f * (uc / maxAxis + 1.0f), 0.5f * (vc / maxAxis + 1.0f));
+}
+
+
+vec3 getCubeTexture(vec3 dir, sampler2D tex1, sampler2D tex2, sampler2D tex3, sampler2D tex4, sampler2D tex5, sampler2D tex6) {
+	int index;
+	vec2 uv = convert_xyz_to_cube_uv(dir, index);
+	if (index == 0) return texture(tex1, uv).rgb;
+	if (index == 1) return texture(tex2, uv).rgb;
+	if (index == 2) return texture(tex3, uv).rgb;
+	if (index == 3) return texture(tex4, uv).rgb;
+	if (index == 4) return texture(tex5, uv).rgb;
+	if (index == 5) return texture(tex6, uv).rgb;
+}
+
+
+vec3 getPlaneTexture(vec3 point, vec4 Pdir, sampler2D tex) {
+	point -= Pdir.xyz * Pdir.w;
+	Pdir.xyz = normalize(Pdir.xyz);
+	float ax = acos(dot(Pdir.yz, vec2(0, 1)));
+	float ay = acos(dot(Pdir.xz, vec2(0, 1)));
+	float az = acos(dot(Pdir.xy, vec2(0, 1)));
+	point.xy *= rot(-az);
+	point.xz *= rot(-ay);
+	point.yz *= rot(-ax);
+	return texture(tex, point.xy).rgb;
+}
+
+
 
 vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	vec2 minIt = vec2(MAX_DIST);
@@ -118,14 +211,14 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	vec3 n;
 	vec2 it;
 
-	vec3 bPos = vec3(1,1.99,10);
+	vec3 bPos = vec3(1,1.99,8);
 	vec3 bSize = vec3(1,0.1,1);
 	vec3 bN;
 	it = boxInter(ro - bPos, rd, bSize, bN);
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = bN;
-		col = vec4(.1,.1,.1,-2);
+		col = vec4(1,1,1,-2);
 	}
 
 	vec3 spPos = vec3(0,0,10);
@@ -135,6 +228,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 		minIt = it;
 		n = normalize(ro + rd * it.x - spPos);
 		col = vec4(getSphereTexture(-n, tex1),0);
+		n = normalize(n * getSphereTexture(-n, normal));
 	}
 
 	spPos = vec3(2,0,13);
@@ -152,7 +246,8 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = bN;
-		col = vec4(0.1, 0.1, 1, 0);
+		col = vec4(getCubeTexture(normalize(ro + rd * it.x - bPos), normal, normal, normal, normal, normal, normal), 0);
+		n = normalize(n * getCubeTexture(normalize(ro + rd * it.x - bPos), normal, normal, normal, normal, normal, normal));
 	}
 
 	vec4 plNorm = vec4(0, 1, 0, 1);
@@ -160,7 +255,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = plNorm.xyz;
-		col = vec4(0.5, 0.5, 0.5, 0);
+		col = vec4(getPlaneTexture(ro + rd * it.x, plNorm, side_d), 0);
 	}
 
 	plNorm = vec4(0, -1, 0, 2);
@@ -177,10 +272,10 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = plNorm.xyz;
-		col = vec4(0.5, 0.5, 0.5, 0);
+		col = vec4(getPlaneTexture(ro + rd * it.x, plNorm, side_d), 0);
 	}
 
-	plNorm = vec4(0, 0, 1, 0);
+	plNorm = vec4(0, 0, 1, 1);
 	it = vec2(plaInter(ro, rd, plNorm));
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
@@ -194,7 +289,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 	if (it.x > 0. && it.x < minIt.x) {
 		minIt = it;
 		n = plNorm.xyz;
-		col = vec4(1, 0.5, 0, 0);
+		col = vec4(getPlaneTexture(ro + rd * it.x, plNorm, side_d), 0);
 	}
 
 	plNorm = vec4(-1, 0, 0, 3);
@@ -205,7 +300,7 @@ vec4 trayce(inout vec3 ro, inout vec3 rd) {
 		col = vec4(0, 0.5, 1, 0);
 	}
 
-	if (minIt.x == MAX_DIST) return vec4(.2,.4,1,-1);
+	if (minIt.x == MAX_DIST) return vec4(.2,.4,1,-2);
 
 	if (col.a == -2.)
 		return col;
@@ -262,7 +357,7 @@ void main(void) {
 	rd.xz *= rot(rotate.y);
 
 	vec3 col = vec3(0);
-	int samples = 32;
+	int samples = 16;
 	for(int i = 0; i < samples; i++) {
 		col += render(ro, rd);
 	}

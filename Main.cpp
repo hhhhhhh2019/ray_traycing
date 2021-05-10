@@ -19,10 +19,6 @@ struct object {
 int main() {
 	Shader shader;
 
-	object objects[10] = {
-		
-	};
-
 	int width = 1024;
 	int height = 600;
 
@@ -50,13 +46,37 @@ int main() {
 
 
 	Texture earth;
-	earth.loadFromFile("textures/earth_2.jpg");
-	earth.setRepeated(true);
+	earth.loadFromFile("textures/earth_1.jpg");
 	shader.setUniform("tex1", earth);
 
-	Texture sky;
-	sky.loadFromFile("textures/skybox.png");
-	shader.setUniform("sky", sky);
+	Texture normal;
+	normal.loadFromFile("textures/normal2.png");
+	shader.setUniform("normal", normal);
+
+	Texture a;
+	a.loadFromFile("textures/a.jpg");
+	a.setRepeated(true);
+	shader.setUniform("side_a", a);
+	Texture b;
+	b.loadFromFile("textures/b.jpg");
+	b.setRepeated(true);
+	shader.setUniform("side_b", b);
+	Texture c;
+	c.loadFromFile("textures/c.jpg");
+	c.setRepeated(true);
+	shader.setUniform("side_c", c);
+	Texture d;
+	d.loadFromFile("textures/d.jpg");
+	d.setRepeated(true);
+	shader.setUniform("side_d", d);
+	Texture e;
+	e.loadFromFile("textures/e.jpg");
+	e.setRepeated(true);
+	shader.setUniform("side_e", e);
+	Texture f;
+	f.loadFromFile("textures/f.jpg");
+	f.setRepeated(true);
+	shader.setUniform("side_f", f);
 
 
 	shader.setUniform("resolution", Vector2f(width, height));
